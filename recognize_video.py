@@ -71,6 +71,7 @@ temp1 = 0
 temp2 = None
 temp3 = False
 data = {}
+track = None
 
 
 
@@ -112,11 +113,15 @@ db.child('Users').child('Exit Notifications').set(data2)
 
 def sendtoDB(name_list1):
     # global data
+    global track
     user = max(name_list1, key=name_list1.get)
-    # data[user] = "Enter"
-    data1 = {"Enter": user}
-    db.child('Users').child('Enter Notifications').set(data1)
-    print("Notification sent to " + user)
+    if user == track:
+        pass
+    else:
+        data1 = {"Enter": user}
+        db.child('Users').child('Enter Notifications').set(data1)
+        print("Notification sent to " + user)
+        track = user
 
 while True:
     # grab the frame from the threaded video stream
@@ -182,8 +187,7 @@ while True:
             y = startY - 10 if startY - 10 > 10 else startY + 10
             cv2.rectangle(frame, (startX, startY), (endX, endY),
                           (0, 0, 255), 2)
-            cv2.putText(frame, text, (startX, y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
+            cv2.putText(frame, text, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
 
             if name in name_list.keys():
                 name_list[name] += 1
@@ -192,8 +196,7 @@ while True:
 
             if name_list[name] > 40:
                 cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 128, 0), 2)
-                cv2.putText(frame, text, (startX, y),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 128, 0), 2)
+                cv2.putText(frame, text, (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 128, 0), 2)
                 if name_list[name] > 60:
                     temp1 = 1
                     sendtoDB(name_list)
