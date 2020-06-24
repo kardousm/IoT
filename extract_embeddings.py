@@ -12,18 +12,28 @@ import pickle
 import cv2
 import os
 
-config = {
-    "apiKey": "AIzaSyDVvv_NerGXIl7xXVDiZB6hWJoQAb0sZDQ",
-    "authDomain": "test-2c93b.firebaseapp.com",
-    "databaseURL": "https://test-2c93b.firebaseio.com",
-    "projectId": "test-2c93b",
-    "storageBucket": "test-2c93b.appspot.com",
-    "messagingSenderId": "782137670239",
-    "appId": "1:782137670239:web:4e9b9983730397f161f9ea",
-    "measurementId": "G-W7PVLBLNV5",
-    "serviceAccount": "test-2c93b-firebase-adminsdk-fbs0y-24184fce57.json"
-}
+# config = {
+#     "apiKey": "AIzaSyDVvv_NerGXIl7xXVDiZB6hWJoQAb0sZDQ",
+#     "authDomain": "test-2c93b.firebaseapp.com",
+#     "databaseURL": "https://test-2c93b.firebaseio.com",
+#     "projectId": "test-2c93b",
+#     "storageBucket": "test-2c93b.appspot.com",
+#     "messagingSenderId": "782137670239",
+#     "appId": "1:782137670239:web:4e9b9983730397f161f9ea",
+#     "measurementId": "G-W7PVLBLNV5",
+#     "serviceAccount": "test-2c93b-firebase-adminsdk-fbs0y-24184fce57.json"
+# }
 
+config = {
+    "apiKey": "AIzaSyAlup_ohoCJ9FZ_2z-E3YUXcfe_Rwbdw0E",
+    "authDomain": "maneesh-iot.firebaseapp.com",
+    "databaseURL": "https://maneesh-iot.firebaseio.com",
+    "projectId": "maneesh-iot",
+    "storageBucket": "maneesh-iot.appspot.com",
+    "messagingSenderId": "100571796856",
+    "appId": "1:100571796856:ios:5a52d4ad6e0f5df844248d",
+    "serviceAccount": "maneesh-iot-firebase-adminsdk-m9gqi-c10e487c04.json"
+}
 
 def get_path(blob):
     blob_str = str(blob)
@@ -77,13 +87,13 @@ files = storage.list_files()
 
 
 #Reading from google cloud storage
-'''
 for blob in files:
-
     blob_str = str(blob)
     if blob_str[-2] == '/':
         count = 1
-        name = blob_str.split('/')[1]
+        t = blob_str.split('/')[0]
+        name = t.split(',')[1]
+        name = name.strip()
     else:
         print("[INFO] processing image {}/{}".format(name, count))
         count += 1
@@ -145,9 +155,9 @@ for blob in files:
                 knownNames.append(name)
                 knownEmbeddings.append(vec.flatten())
                 total += 1
+
+
 '''
-
-
 #Reading from local directory:
 
 for (i, imagePath) in enumerate(imagePaths):
@@ -191,8 +201,7 @@ for (i, imagePath) in enumerate(imagePaths):
             knownNames.append(name)
             knownEmbeddings.append(vec.flatten())
             total += 1
-
-
+'''
 
 
 # dump the facial embeddings + names to disk

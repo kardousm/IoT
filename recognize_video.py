@@ -15,18 +15,36 @@ import time
 import cv2
 import os
 import pyrebase
+import firebase_admin
+from firebase_admin import credentials
+from firebase_admin import firestore
+import threading
 
+# config = {
+#     "apiKey": "AIzaSyDVvv_NerGXIl7xXVDiZB6hWJoQAb0sZDQ",
+#     "authDomain": "test-2c93b.firebaseapp.com",
+#     "databaseURL": "https://test-2c93b.firebaseio.com",
+#     "projectId": "test-2c93b",
+#     "storageBucket": "test-2c93b.appspot.com",
+#     "messagingSenderId": "782137670239",
+#     "appId": "1:782137670239:web:4e9b9983730397f161f9ea",
+#     "measurementId": "G-W7PVLBLNV5",
+#     "serviceAccount": "test-2c93b-firebase-adminsdk-fbs0y-24184fce57.json"
+# }
+
+#Maneesh
 config = {
-    "apiKey": "AIzaSyDVvv_NerGXIl7xXVDiZB6hWJoQAb0sZDQ",
-    "authDomain": "test-2c93b.firebaseapp.com",
-    "databaseURL": "https://test-2c93b.firebaseio.com",
-    "projectId": "test-2c93b",
-    "storageBucket": "test-2c93b.appspot.com",
-    "messagingSenderId": "782137670239",
-    "appId": "1:782137670239:web:4e9b9983730397f161f9ea",
-    "measurementId": "G-W7PVLBLNV5",
-    "serviceAccount": "test-2c93b-firebase-adminsdk-fbs0y-24184fce57.json"
+    "apiKey": "AIzaSyAlup_ohoCJ9FZ_2z-E3YUXcfe_Rwbdw0E",
+    "authDomain": "maneesh-iot.firebaseapp.com",
+    "databaseURL": "https://maneesh-iot.firebaseio.com",
+    "projectId": "maneesh-iot",
+    "storageBucket": "maneesh-iot.appspot.com",
+    "messagingSenderId": "100571796856",
+    "appId": "1:100571796856:ios:5a52d4ad6e0f5df844248d",
+    "serviceAccount": "maneesh-iot-firebase-adminsdk-m9gqi-c10e487c04.json"
 }
+
+
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -72,8 +90,48 @@ temp2 = None
 temp3 = False
 data = {}
 track = None
+admin = None
 
+def get_notifications(notifications, check_unknown):
+    array_temp = []
+    if check_unknown:
+        for element in notifications:
+            if type(element) == str:
+                array_temp.append('remind stranger to ' +  element)
+        return array_temp
 
+    else:
+        if admin:
+            for element in notifications:
+                if type(element) == str:
+                    array_temp.append('don\'t forget to ' +  element)
+                else:
+                    for element2 in element['customnotifications']:
+                        array_temp.append('don\'t forget to ' + element2)
+        else:
+            for element in notifications:
+                if type(element) == str:
+                    array_temp.append(element)
+                else:
+                    for element2 in element['customnotifications']:
+                        array_temp.append(element2)
+        return array_temp
+
+def update_notifications(notif_array, check_unknown, entry_or_exit, name):
+    # name += '{0} '
+    # notif_array = [name.format(i) for i in notif_array]
+    # return notif_array
+    if check_unknown:
+        if entry_or_exit == 0:
+            return ['A stranger has entered, ' + notif for notif in notif_array]
+        else:
+            return ['A stranger has exited, ' + notif for notif in notif_array]
+
+    else:
+        if admin:
+            return [name + ',' + ' ' + notif for notif in notif_array]
+        else:
+            return ['Please remind ' + name + ' to ' + notif for notif in notif_array]
 
 
 def ignore_first():
@@ -87,41 +145,93 @@ def ignore_first():
         return True
 
 
-def stream_handler(post):
+# def stream_handler(post):
+#     global temp3
+#     if ignore_first():
+#         print('Database has been updated. Re-running ML Model.')
+#         os.system("python3 extract_embeddings.py --dataset test --embeddings output/embeddings.pickle --detector face_detection_model --embedding-model openface_nn4.small2.v1.t7")
+#         os.system("python3 train_model.py --embeddings output/embeddings.pickle --recognizer output/recognizer.pickle --le output/le.pickle")
+#         print("New facial recognition window is currently opening")
+#         temp3 = True
+
+
+
+
+# firebase = pyrebase.initialize_app(config)
+# db = firebase.database()
+# my_stream = db.child("Users").child("Profiles").stream(stream_handler, None)
+# data2 = {"Exit": "None"}
+# db.child('Users').child('Exit Notifications').set(data2)
+
+
+#Maneesh
+firebase = pyrebase.initialize_app(config)
+storage = firebase.storage()
+cred = credentials.Certificate('maneesh-iot-firebase-adminsdk-m9gqi-c10e487c04.json')
+firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+
+# Create an Event for notifying main thread.
+callback_done = threading.Event()
+
+#Create a callback on_snapshot function to capture changes
+def on_snapshot(doc_snapshot, changes, read_time):
     global temp3
     if ignore_first():
-        print('Database has been updated. Re-running ML Model.')
-        os.system("python3 extract_embeddings.py --dataset test --embeddings output/embeddings.pickle --detector face_detection_model --embedding-model openface_nn4.small2.v1.t7")
-        os.system("python3 train_model.py --embeddings output/embeddings.pickle --recognizer output/recognizer.pickle --le output/le.pickle")
-        print("New facial recognition window is currently opening")
-        temp3 = True
-        os.system("python3 recognize_video.py --detector face_detection_model --embedding-model openface_nn4.small2.v1.t7 --recognizer output/recognizer.pickle --le output/le.pickle")
+        for doc in doc_snapshot:
+            os.system("python3 extract_embeddings.py --dataset test --embeddings output/embeddings.pickle --detector face_detection_model --embedding-model openface_nn4.small2.v1.t7")
+            os.system("python3 train_model.py --embeddings output/embeddings.pickle --recognizer output/recognizer.pickle --le output/le.pickle")
+            print("New facial recognition window is currently opening")
+            temp3 = True
+    callback_done.set()
+
+doc_ref = db.collection(u'Profiles').document(u'vBelq0WbFAlh5fKeDuiy')
+
+
+# Watch the document
+doc_watch = doc_ref.on_snapshot(on_snapshot)
 
 
 
-
-firebase = pyrebase.initialize_app(config)
-db = firebase.database()
-
-my_stream = db.child("Users").child("Profiles").stream(stream_handler, None)
-data2 = {"Exit": "None"}
-db.child('Users').child('Exit Notifications').set(data2)
-
-#data1 = {"Mario": 10, "Maneesh":10, "Liz": 10, "Manuja": 10}
-#db.child('Users').child('Profiles').set(data1)
-
-
-def sendtoDB(name_list1):
+def sendtoDB(name_list1, entry_or_exit):
+    check_unknown = 0
     # global data
+    global admin
     global track
     user = max(name_list1, key=name_list1.get)
     if user == track:
         pass
     else:
-        data1 = {"Enter": user}
-        db.child('Users').child('Enter Notifications').set(data1)
-        print("Notification sent to " + user)
-        track = user
+        if user == 'Unknown':
+            check_unknown = 1
+        if entry_or_exit == 0:
+            docs = db.collection(u'users').where('name', '==', user).stream()
+            dict1 = {}
+            for doc in docs:
+                dict1 = doc.to_dict()
+
+            admin = dict1['admin']
+
+            temp = get_notifications(dict1['entrynotifications'], check_unknown)
+            update_temp = update_notifications(temp, check_unknown, entry_or_exit, user)
+            docs = db.collection(u'Notifications').document('t3lanyWN1XDw4n8Vgkpd')
+            docs.set({'Notification': update_temp})
+            print("Entrance Notification sent regarding " + user)
+            track = user
+        else:
+            docs = db.collection(u'users').where('name', '==', user).stream()
+            dict1 = {}
+            for doc in docs:
+                dict1 = doc.to_dict()
+
+            temp = get_notifications(dict1['exitnotifications'], check_unknown)
+            update_temp = update_notifications(temp, check_unknown, entry_or_exit, user)
+            docs = db.collection(u'Notifications').document('t3lanyWN1XDw4n8Vgkpd')
+            docs.set({'Notification': update_temp})
+            print("Exit Notification sent regarding " + user)
+            track = user
+
 
 while True:
     # grab the frame from the threaded video stream
@@ -199,7 +309,9 @@ while True:
                 cv2.putText(frame, text, (startX, y),cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 128, 0), 2)
                 if name_list[name] > 60:
                     temp1 = 1
-                    sendtoDB(name_list)
+                    sendtoDB(name_list, 0)
+                    # user = max(name_list, key=name_list1.get)
+                    # print(user)
                     name_list = {}
 
     if temp3:
@@ -216,7 +328,7 @@ while True:
     if key == ord("q"):
         break
 
-
+os.system("python3 recognize_video.py --detector face_detection_model --embedding-model openface_nn4.small2.v1.t7 --recognizer output/recognizer.pickle --le output/le.pickle")
 #vs.release()
 vs.stop()
 cv2.destroyAllWindows()
